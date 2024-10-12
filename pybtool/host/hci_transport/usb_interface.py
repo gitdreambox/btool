@@ -58,7 +58,10 @@ class usb_interface(HCIInterface):
                 d = self.device.read(0x81, 256, 100)
                 return d.tobytes()
         except usb.core.USBError as e:
-            print(e)
+            if e.errno == 10060:
+                pass
+            else:
+                print(e)
         return bytes()
 
 

@@ -1,3 +1,4 @@
+import time
 from . import hci_transport
 from .hci_cmd import HciCmd
 from .hci_evt import HciEvent
@@ -27,19 +28,20 @@ class HCI:
     def close(self):
         self.hci.close()
 
-    def send_command(
-        self, cmd: HciCmd, expect_evt: HciEvent = None, timeout: int = 100
-    ):
+    def send_command(self, cmd: HciCmd, expect_evt: HciEvent = None, timeout: int = 2):
         evt = HciEvent()
         print("send cmd:" + " ".join([hex(i) for i in cmd.pack()]))
         self.hci.send_command(cmd.pack())
-        recv = self.hci.receive_event()
-        if len(recv) > 0:
-            print("recv evt:" + " ".join([hex(i) for i in recv]))
-            evt.unpack(recv)
-            if evt.event_code == expect_evt.event_code:
-                expect_evt.unpack(recv)
-                return expect_evt
+        # wait for expect event timeout times
+        time_start = time.time()
+        while time.time() - time_start < timeout:
+            recv = self.hci.receive_event()
+            if len(recv) > 0:
+                print("recv evt:" + " ".join([hex(i) for i in recv]))
+                evt.unpack(recv)
+                if evt.event_code == expect_evt.event_code:
+                    expect_evt.unpack(recv)
+                    return expect_evt
         return None
 
     def receive_event(self):

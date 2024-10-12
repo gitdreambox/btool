@@ -1,37 +1,71 @@
 import unittest
-import os
-import tempfile
-from pybluetooth import hello_world, generate_music, play_audio
-from pybluetooth.cli import main
-from unittest.mock import patch
-import sys
 
-class TestPyBluetooth(unittest.TestCase):
-    def test_hello_world(self):
-        self.assertEqual(hello_world(), "Hello, Bluetooth and Audio World!")
 
-    def test_generate_and_play_music(self):
-        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp_file:
-            temp_filename = temp_file.name
+class TestPyBtool(unittest.TestCase):
 
-        try:
-            generate_music(temp_filename)
-            self.assertTrue(os.path.exists(temp_filename))
-            self.assertGreater(os.path.getsize(temp_filename), 0)
+    @unittest.skip("skip")
+    def test_hci_transport_usb(self):
+        from pybtool.host.hci_transport import usb_interface
+        from pybtool.host.hci_transport.transport import Device
 
-            # 注意：这个测试不会实际播放音频，因为那需要音频设备
-            # 我们只是确保函数不会抛出异常
-            play_audio(temp_filename)
-        finally:
-            os.unlink(temp_filename)
+        hci = usb_interface()
+        hci.open(Device(name="test", vid=0x0BDA, pid=0xC123))
+        hci.open(Device(name="test", vid=0x0BDA, pid=0xC123))
+        hci.open(Device(name="test", vid=0x0BDA, pid=0xC123))
+        print(f"hci open {hci.name}")
+        cmd = bytes.fromhex("030c00")
+        hci.send_command(cmd)
+        print("send cmd:" + " ".join([hex(i) for i in cmd]))
+        evt = hci.receive_event()
+        print("recv evt:" + " ".join([hex(i) for i in evt]))
+        hci.close()
 
-    @patch('sys.argv', ['btool', '-s'])
-    @patch('pybluetooth.cli.ble_scan')
-    def test_btool_scan(self, mock_ble_scan):
-        with self.assertRaises(SystemExit) as cm:
-            main()
-        self.assertEqual(cm.exception.code, 0)
-        mock_ble_scan.assert_called_once()
+    @unittest.skip("skip")
+    def test_hci_transport_uart(self):
+        import pybtool.host.hci_transport
 
-if __name__ == '__main__':
+        hci = pybtool.host.hci_transport.uart_interface()
+        hci.open()
+        print(f"hci open {hci.name}")
+        cmd = bytes.fromhex("01030c00")
+        hci.send_command(cmd)
+
+        print("send cmd:" + " ".join([hex(i) for i in cmd]))
+        evt = hci.receive_event()
+        print("recv evt:" + " ".join([hex(i) for i in evt]))
+        hci.close()
+
+    def test_hci_cmd(self):
+        from pybtool.host.hci_def import HciCmdReset
+
+        hcicmd = HciCmdReset()
+        print(hcicmd.tobytes().hex())
+        print(hcicmd)
+
+    def test_hci_event(self):
+        from pybtool.host.hci_def import HciEvent
+
+        hcievt = HciEvent()
+        hcievt.frombytes(bytes.fromhex("0e0405030c00"))
+        print(hcievt)
+
+    def test_hci(self):
+        """测试HCI类的初始化。"""
+        from pybtool.host import hci
+
+        from pybtool.host.hci_def import HciCmdReset, HciEventCommandComplete, HciEvent
+
+        hci = hci.HCI()
+        hci.open()
+        print(f"hci open {hci.name}")
+
+        hcicmd = HciCmdReset()
+        print(hcicmd)
+        hcievt = HciEventCommandComplete()
+        hcievt = hci.send_command(hcicmd, hcievt)
+        print(hcievt)
+        hci.close()
+
+
+if __name__ == "__main__":
     unittest.main()

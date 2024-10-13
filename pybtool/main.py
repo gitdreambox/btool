@@ -71,6 +71,30 @@ def main():
         hcievt = hci.send_command(hcicmd, hcievt)
         print(hcievt)
 
+        hcicmd = host.hci_cmd.HciCmdReadLocalVersionInfo()
+        print(hcicmd)
+        hcievt = host.hci_evt.HciEventCommandCompleteLocalVersionInfo()
+        hcievt = hci.send_command(hcicmd, hcievt)
+        print(hcievt)
+
+        hcicmd = host.hci_cmd.HciCmdReadLocalSupportedCommands()
+        print(hcicmd)
+        hcievt = host.hci_evt.HciEventCommandCompleteLocalSupportedCommands()
+        hcievt = hci.send_command(hcicmd, hcievt)
+        print(hcievt)
+
+        hcicmd = host.hci_cmd.HciCmdReadLocalSupportedFeatures()
+        print(hcicmd)
+        hcievt = host.hci_evt.HciEventCommandCompleteLocalSupportedFeatures()
+        hcievt = hci.send_command(hcicmd, hcievt)
+        print(hcievt)
+
+        hcicmd = host.hci_cmd.HciCmdLeReadlocalSupportedFeaturesPage0()
+        print(hcicmd)
+        hcievt = host.hci_evt.HciEventCommandCompleteLeLocalSupportedFeatures()
+        hcievt = hci.send_command(hcicmd, hcievt)
+        print(hcievt)
+
         hcicmd = host.hci_cmd.HciCmdSetEventMask(inquiry_complete_event=1)
         print(hcicmd)
         hcievt = host.hci_evt.HciEventCommandComplete()

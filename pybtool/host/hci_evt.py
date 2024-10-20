@@ -31,14 +31,42 @@ class HciEvent:
         return f"hci event code: 0x{self.event_code:02X}, len: {self.len}, param: {self.param.hex()}"
 
 
+class HciEventDisconnectionComplete(HciEvent):
+    """
+    HCI LE disconnection complete event
+    """
+    EVENT_CODE = 0x05
+    def __init__(self):
+        super().__init__()
+        self.event_code = 0
+        self.len = 0
+        self.status = 0
+        self.connection_handle = 0
+        self.reason = 0
+
+    def unpack(self, data: bytes):
+        """
+        convert from bytes
+        """
+        super().unpack(data)
+        if self.event_code == self.EVENT_CODE:
+            _format = "<BHB"
+            _offset = 0
+            _len = struct.calcsize(_format)
+            self.status, self.connection_handle, self.reason = struct.unpack(_format, self.param[_offset:_offset+_len])
+
+    def __str__(self):
+        return f"hci event code: 0x{self.event_code:02X} HCI_Disconnection_Complete, len: {self.len}, status: {StatusType(self.status).name}, connection_handle: 0x{self.connection_handle:04X}, reason: {DisconnectionReasonType(self.reason).name}"
+
+
 class HciEventCommandComplete(HciEvent):
     """
     HCI command complete event
     """
-
+    EVENT_CODE = 0x0E
     def __init__(self):
         super().__init__()
-        self.event_code = 0x0E
+        self.event_code = 0
         self.len = 0x04
         self.num_hci_cmd_packets = 0
         self.opcode = 0
@@ -49,7 +77,7 @@ class HciEventCommandComplete(HciEvent):
         convert from bytes
         """
         super().unpack(data)
-        if self.event_code == 0x0E:
+        if self.event_code == self.EVENT_CODE:
             self.num_hci_cmd_packets, self.opcode, self.status = struct.unpack(
                 "<BHB", self.param[:4]
             )
@@ -62,7 +90,6 @@ class HciEventCommandCompleteLocalName(HciEventCommandComplete):
     """
     HCI command complete event for local version info
     """
-
     def __init__(self):
         super().__init__()
         self.local_name = ""
@@ -70,7 +97,7 @@ class HciEventCommandCompleteLocalName(HciEventCommandComplete):
     def unpack(self, data: bytes):
         super().unpack(data)
         if (
-            self.event_code == 0x0E
+            self.event_code == self.EVENT_CODE
             and self.opcode == HCI_OPCODE.HCI_CMD_READ_LOCAL_NAME
         ):
             self.local_name = self.param[4:].decode("utf-8")
@@ -90,7 +117,7 @@ class HciEventCommandCompleteBdAddr(HciEventCommandComplete):
 
     def unpack(self, data: bytes):
         super().unpack(data)
-        if self.event_code == 0x0E and self.opcode == HCI_OPCODE.HCI_CMD_READ_BD_ADDR:
+        if self.event_code == self.EVENT_CODE and self.opcode == HCI_OPCODE.HCI_CMD_READ_BD_ADDR:
             self.bd_addr = ":".join([f"{i:02X}" for i in self.param[4:10]])
 
     def __str__(self):
@@ -112,7 +139,7 @@ class HciEventCommandCompleteBufferSize(HciEventCommandComplete):
     def unpack(self, data: bytes):
         super().unpack(data)
         if (
-            self.event_code == 0x0E
+            self.event_code == self.EVENT_CODE
             and self.opcode == HCI_OPCODE.HCI_CMD_READ_BUFFER_SIZE
         ):
             (
@@ -145,7 +172,7 @@ class HciEventCommandCompleteLocalVersionInfo(HciEventCommandComplete):
     def unpack(self, data: bytes):
         super().unpack(data)
         if (
-            self.event_code == 0x0E
+            self.event_code == self.EVENT_CODE
             and self.opcode == HCI_OPCODE.HCI_CMD_READ_LOCAL_VERSION_INFO
         ):
             _format = "<BHBHH"
@@ -176,7 +203,7 @@ class HciEventCommandCompleteLocalSupportedCommands(HciEventCommandComplete):
     def unpack(self, data: bytes):
         super().unpack(data)
         if (
-            self.event_code == 0x0E
+            self.event_code == self.EVENT_CODE
             and self.opcode == HCI_OPCODE.HCI_CMD_READ_LOCAL_SUPPORTED_COMMANDS
         ):
             _format = "<64B"
@@ -201,7 +228,7 @@ class HciEventCommandCompleteLocalSupportedFeatures(HciEventCommandComplete):
     def unpack(self, data: bytes):
         super().unpack(data)
         if (
-            self.event_code == 0x0E
+            self.event_code == self.EVENT_CODE
             and self.opcode == HCI_OPCODE.HCI_CMD_READ_LOCAL_SUPPORTED_FEATURES
         ):
             _format = "<8B"
@@ -259,10 +286,122 @@ class HciEventCommandCompleteLeLocalSupportedFeatures(HciEventCommandComplete):
     def unpack(self, data: bytes):
         super().unpack(data)
         if (
-            self.event_code == 0x0E
+            self.event_code == self.EVENT_CODE
             and self.opcode == HCI_OPCODE.HCI_CMD_LE_READ_LOCAL_SUPPORTED_FEATURES
         ):
             self.le_features.unpack(self.param[4 : 4 + 8])
 
     def __str__(self):
         return super().__str__() + "\n" + self.le_features.__str__()
+
+
+class HciEventCommandStatus(HciEvent):
+    """
+    HCI command Status event
+    """
+    EVENT_CODE = 0x0F
+    def __init__(self):
+        super().__init__()
+        self.event_code = 0
+        self.len = 0x04
+        self.status = 0
+        self.num_hci_cmd_packets = 0
+        self.opcode = 0
+
+    def unpack(self, data: bytes):
+        """
+        convert from bytes
+        """
+        super().unpack(data)
+        if self.event_code == self.EVENT_CODE:
+            self.status, self.num_hci_cmd_packets, self.opcode = struct.unpack(
+                "<BHB", self.param[:4]
+            )
+
+    def __str__(self):
+        return f"hci event code: 0x{self.event_code:02X}, len: {self.len}, status: 0x{self.status:02X}, num_hci_cmd_packets: {self.num_hci_cmd_packets}, opcode: 0x{self.opcode:04X}"
+
+
+class HciEventLeMeta(HciEvent):
+    """
+    HCI LE meta event
+    """
+    EVENT_CODE = 0x3E
+    def __init__(self):
+        super().__init__()
+        self.event_code = self.EVENT_CODE
+        self.len = 0x04
+        self.subevent_code = 0
+
+    def unpack(self, data: bytes):
+        """
+        convert from bytes
+        """
+        super().unpack(data)
+        if self.event_code == self.EVENT_CODE:
+            self.subevent_code = self.param[0]
+
+    def __str__(self):
+        return f"hci event code: 0x{self.event_code:02X} HCI_LE_Meta_Event, len: {self.len}, subevent_code: 0x{self.subevent_code:02X}"
+
+
+class HciEventLeConnectionComplete(HciEventLeMeta):
+    """
+    HCI LE connection complete event
+    """
+    SUBEVENT_CODE = 0x01
+    def __init__(self):
+        super().__init__()
+        self.subevent_code = 0
+        self.status = 0
+        self.connection_handle = 0
+        self.role = 0
+        self.adv_address_type = 0
+        self.peer_bd_addr = bytes()
+        self.connection_interval = 0
+        self.max_latency = 0
+        self.supervision_timeout = 0
+        self.central_clock_accuracy = 0
+
+    def unpack(self, data: bytes):
+        """
+        convert from bytes
+        """
+        super().unpack(data)
+        if self.event_code == self.EVENT_CODE and self.subevent_code == self.SUBEVENT_CODE:
+            _format = "<BHBB6sHHHB"
+            _offset = 1
+            _len = struct.calcsize(_format)
+            self.status, self.connection_handle, self.role, self.adv_address_type, self.peer_bd_addr, self.connection_interval, self.max_latency, self.supervision_timeout, self.central_clock_accuracy = struct.unpack(_format, self.param[_offset:_offset+_len])
+
+    def __str__(self):
+        return super().__str__() + f" HCI_LE_Connection_Complete, status: {StatusType(self.status).name}, connection_handle: 0x{self.connection_handle:04X}, role: {RoleType(self.role).name}, adv_address_type: {AddressType(self.adv_address_type).name}, peer_bd_addr: {address_to_str(self.peer_bd_addr)}, connection_interval: {self.connection_interval*1.25} ms, max_latency: {self.max_latency} events, supervision_timeout: {self.supervision_timeout} ms, central_clock_accuracy: {self.central_clock_accuracy} ppm"
+
+class HciEventLeConnectionUpdateComplete(HciEventLeMeta):
+    """
+    HCI LE connection update complete event
+    """
+    SUBEVENT_CODE = 0x03
+    def __init__(self):
+        super().__init__()
+        self.subevent_code = 0
+        self.status = 0
+        self.connection_handle = 0
+        self.connection_interval = 0
+        self.max_latency = 0
+        self.supervision_timeout = 0
+
+    def unpack(self, data: bytes):
+        """
+        convert from bytes
+        """
+        super().unpack(data)
+        if self.event_code == self.EVENT_CODE and self.subevent_code == self.SUBEVENT_CODE:
+            _format = "<BHHHH"
+            _offset = 1
+            _len = struct.calcsize(_format)
+            self.status, self.connection_handle, self.connection_interval, self.max_latency, self.supervision_timeout = struct.unpack(_format, self.param[_offset:_offset+_len])
+
+    def __str__(self):
+        return super().__str__() + f" HCI_LE_Connection_Update_Complete, status: {StatusType(self.status).name}, connection_handle: 0x{self.connection_handle:04X}, connection_interval: {self.connection_interval*1.25} ms, max_latency: {self.max_latency} events, supervision_timeout: {self.supervision_timeout} ms"
+

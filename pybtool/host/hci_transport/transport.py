@@ -45,12 +45,15 @@ class HCIInterface(ABC):
         pass
 
     @abstractmethod
-    def register_event(self, cb: callable):
+    def send_acl(self, data: bytes):
         '''
-        register event callback
+        send acl
         '''
         pass
 
     @abstractmethod
-    def receive_event(self) -> bytes:
+    def register_event(self, cb: callable):
+        '''
+        register event callback
+        '''
         pass
